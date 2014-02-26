@@ -188,8 +188,9 @@ public abstract class BaseMogileFSImpl implements MogileFS {
 	public void storeFile(String key, String storageClass, File file) throws MogileException {
 	    int attempt = 1;
 	
-	    Backend backend = null;
-	    
+	    Backend backend  = null;
+	    InputStream in   = null;
+	    OutputStream out = null;
 	    while ((maxRetries == -1) || (attempt++ <= maxRetries)) {
 	        try {
 	            backend = borrowBackend();
@@ -203,12 +204,12 @@ public abstract class BaseMogileFSImpl implements MogileFS {
 	
 	            } else {
 	                try {
-	                    MogileOutputStream out = new MogileOutputStream(getBackendPool(), domain,
+	                    out = new MogileOutputStream(getBackendPool(), domain,
 	                            (String) response.get("fid"),
 	                            (String) response.get("path"), (String) response
 	                                    .get("devid"), key, file.length());
 	        
-	                    FileInputStream in = new FileInputStream(file);
+	                    in = new FileInputStream(file);
 	                    byte[] buffer = new byte[4096];
 	                    int count = 0;
 	                    while ((count = in.read(buffer)) >= 0) {
@@ -245,6 +246,12 @@ public abstract class BaseMogileFSImpl implements MogileFS {
 	            // we return it to the pool
 	            if (backend != null)
 	                returnBackend(backend);
+	            if (in != null) {
+	                try { in.close(); } catch (IOException e) {}
+	            }
+	            if (out != null) {
+	                try { out.close(); } catch (IOException e) {}
+	            }
 	        }
 	        
 	        // wait a little while before continuing
